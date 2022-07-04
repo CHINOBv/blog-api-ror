@@ -12,13 +12,28 @@ end
 
 RSpec.describe Post, type: :request do
   describe "GET /post" do
-    before { get '/posts' }
-
     it 'Should return a empty list of posts' do
+      get '/posts'
       payload = JSON.parse(response.body)
       expect(payload).to be_empty
       expect(response).to have_http_status(200)
-    end    
+    end
+    describe 'Search' do
+      let!(:hi_rails) { create(:published_post, title: 'Hi rails') }
+      let!(:hi_post) { create(:published_post, title: 'Hi Post') }
+      let!(:whats_posts) { create(:published_post, title: 'Whats posts') }
+
+      it 'Should filter posts by title' do
+        get "/posts?search=Hi"
+        payload = JSON.parse(response.body)
+
+        expect(payload).to_not be_empty
+        expect(payload.size).to eq(2)
+        expect(payload.map {|i| i['id']}.sort).to  eq([hi_rails.id, hi_post.id].sort)
+        expect(response).to have_http_status(200)
+
+      end
+    end
   end
 
   describe 'With data in the DB' do
@@ -71,6 +86,15 @@ RSpec.describe Post, type: :request do
 
       expect(payload).to_not be_empty
       expect(payload['id']).to_not be_nil
+      expect(payload['title']).to_not be_nil
+      expect(payload['content']).to_not be_nil
+      expect(payload['published']).to_not be_nil
+
+      # Author
+      expect(payload['author']['id']).to eq(user.id)
+      expect(payload['author']['name']).to eq(user.name)
+      expect(payload['author']['email']).to eq(user.email)
+
       expect(response).to have_http_status(:created)
 
     end
